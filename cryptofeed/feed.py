@@ -182,12 +182,17 @@ class Feed:
         2. the subscribe function pointer associated with this connection
         3. the message handler for this connection
         """
+        channels = list(self.subscription.keys())
+        channels_id = '|'.join(channels)
+        symbols_id = '|'.join(self.subscription[channels[0]])
+        conn_id = '-'.join([channels_id, self.id, symbols_id])
+        
         ret = []
         if isinstance(self.address, str):
-            return [(WSAsyncConn(self.address, self.id, **self.ws_defaults), self.subscribe, self.message_handler)]
+            return [(WSAsyncConn(self.address, conn_id, **self.ws_defaults), self.subscribe, self.message_handler)]
 
         for _, addr in self.address.items():
-            ret.append((WSAsyncConn(addr, self.id, **self.ws_defaults), self.subscribe, self.message_handler))
+            ret.append((WSAsyncConn(addr, conn_id, **self.ws_defaults), self.subscribe, self.message_handler))
         return ret
 
     @classmethod
