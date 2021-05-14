@@ -110,6 +110,9 @@ class Feed:
             raise ValueError("Use subscription, or channels and symbols, not both")
 
         if subscription is not None:
+            self.channels = list(subscription.keys())
+            self.symbols = list(subscription[self.channels[0]])
+
             for channel in subscription:
                 chan = feed_to_exchange(self.id, channel)
                 if is_authenticated_channel(channel):
@@ -123,6 +126,8 @@ class Feed:
             if any(is_authenticated_channel(chan) for chan in channels):
                 if not self.key_id or not self.key_secret:
                     raise ValueError("Authenticated channel subscribed to, but no auth keys provided")
+            self.channels = channels
+            self.symbols = symbols
 
             # if we dont have a subscription dict, we'll use symbols+channels and build one
             [self._feed_config[channel].extend(symbols) for channel in channels]
@@ -184,8 +189,8 @@ class Feed:
         2. the subscribe function pointer associated with this connection
         3. the message handler for this connection
         """
-        channels_id = '|'.join(self.channels)
-        symbols_id = '|'.join(self.symbols)
+        channels_id = '|'.join(list(self.channels))
+        symbols_id = '|'.join(list(self.symbols))
         conn_id = '-'.join([channels_id, self.id, symbols_id])
         
         ret = []
@@ -350,7 +355,7 @@ class Feed:
         Create tasks for exchange interfaces and backends
         """
         for conn, sub, handler in self.connect():
-            self.connection_handlers.append(ConnectionHandler(conn, sub, handler, self.retries, exceptions=self.exceptions, log_on_error=self.log_on_error))
+            self.connection_handlers.append(ConnectionHandler(conn, sub, handler, self.retries, timeout=self.timeout, timeout_interval=self.timeout_interval, exceptions=self.exceptions, log_on_error=self.log_on_error))
             self.connection_handlers[-1].start(loop)
 
         for callbacks in self.callbacks.values():
