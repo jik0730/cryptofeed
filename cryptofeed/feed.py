@@ -136,8 +136,6 @@ class Feed:
             symbols = [self.std_symbol_to_exchange_symbol(symbol) for symbol in symbols]
             channels = list(set([feed_to_exchange(self.id, chan) for chan in channels]))
             self.subscription = {chan: symbols for chan in channels}
-        self.channels = channels
-        self.symbols = symbols
 
         self._feed_config = dict(self._feed_config)
 
