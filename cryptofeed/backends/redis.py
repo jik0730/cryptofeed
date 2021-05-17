@@ -33,6 +33,7 @@ class RedisCallback(BackendQueue):
         self.redis = aioredis.from_url(f"{prefix}{host}:{port}")
         self.key = key if key else self.default_key
         self.numeric_type = numeric_type
+        self.maxlen = kwargs['maxlen'] if 'maxlen' in kwargs else None
 
 
 class RedisZSetCallback(RedisCallback):
@@ -67,11 +68,11 @@ class RedisStreamCallback(RedisCallback):
                 async with self.read_many_queue(count) as updates:
                     async with self.redis.pipeline(transaction=False) as pipe:
                         for update in updates:
-                            pipe = pipe.xadd(f"{self.key}-{update['feed']}-{update['symbol']}", update['data'])
+                            pipe = pipe.xadd(f"{self.key}-{update['feed']}-{update['symbol']}", update['data'], maxlen=self.maxlen)
                         await pipe.execute()
             else:
                 async with self.read_queue() as update:
-                    await self.redis.xadd(f"{self.key}-{update['feed']}-{update['symbol']}", update['data'])
+                    await self.redis.xadd(f"{self.key}-{update['feed']}-{update['symbol']}", update['data'], maxlen=self.maxlen)
 
 
 class TradeRedis(RedisZSetCallback, BackendTradeCallback):
