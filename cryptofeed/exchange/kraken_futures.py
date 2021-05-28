@@ -52,7 +52,7 @@ class KrakenFutures(Feed):
             info['contract_size'][normalized] = entry['contractSize']
             info['underlying'][normalized] = entry['underlying']
             info['product_type'][normalized] = _kraken_futures_product_type[normalized[:2]]
-            ret[normalized] = entry['symbol']
+            ret[normalized] = entry['symbol'].upper()
         return ret, info
 
     def __init__(self, **kwargs):
@@ -90,7 +90,7 @@ class KrakenFutures(Feed):
         }
         """
         await self.callback(TRADES, feed=self.id,
-                            symbol=pair,
+                            symbol=self.exchange_symbol_to_std_symbol(pair),
                             side=BUY if msg['side'] == 'buy' else SELL,
                             amount=Decimal(msg['qty']),
                             price=Decimal(msg['price']),
@@ -114,7 +114,7 @@ class KrakenFutures(Feed):
             "maturityTime": 0
         }
         """
-        await self.callback(TICKER, feed=self.id, symbol=pair, bid=msg['bid'], ask=msg['ask'], timestamp=timestamp, receipt_timestamp=timestamp)
+        await self.callback(TICKER, feed=self.id, symbol=self.exchange_symbol_to_std_symbol(pair), bid=msg['bid'], ask=msg['ask'], timestamp=timestamp, receipt_timestamp=timestamp)
 
     async def _book_snapshot(self, msg: dict, pair: str, timestamp: float):
         """
@@ -140,6 +140,8 @@ class KrakenFutures(Feed):
             "tickSize": null
         }
         """
+        pair = self.exchange_symbol_to_std_symbol(pair)
+
         self.l2_book[pair] = {
             BID: sd({Decimal(update['price']): Decimal(update['qty']) for update in msg['bids']}),
             ASK: sd({Decimal(update['price']): Decimal(update['qty']) for update in msg['asks']})
@@ -159,6 +161,8 @@ class KrakenFutures(Feed):
             "timestamp": 1565342713929
         }
         """
+        pair = self.exchange_symbol_to_std_symbol(pair)
+
         if pair in self.seq_no and self.seq_no[pair] + 1 != msg['seq']:
             raise MissingSequenceNumber
         self.seq_no[pair] = msg['seq']
@@ -181,7 +185,7 @@ class KrakenFutures(Feed):
         if msg['tag'] == 'perpetual':
             await self.callback(FUNDING,
                                 feed=self.id,
-                                symbol=pair,
+                                symbol=self.exchange_symbol_to_std_symbol(pair),
                                 timestamp=timestamp_normalize(self.id, msg['time']),
                                 receipt_timestamp=timestamp,
                                 tag=msg['tag'],
@@ -193,7 +197,7 @@ class KrakenFutures(Feed):
         else:
             await self.callback(FUNDING,
                                 feed=self.id,
-                                symbol=pair,
+                                symbol=self.exchange_symbol_to_std_symbol(pair),
                                 timestamp=timestamp_normalize(self.id, msg['time']),
                                 receipt_timestamp=timestamp,
                                 tag=msg['tag'],
@@ -201,6 +205,7 @@ class KrakenFutures(Feed):
                                 maturity_timestamp=timestamp_normalize(self.id, msg['maturityTime']))
 
         oi = msg['openInterest']
+        pair = self.exchange_symbol_to_std_symbol(pair)
         if pair in self.open_interest and oi == self.open_interest[pair]:
             return
         self.open_interest[pair] = oi
