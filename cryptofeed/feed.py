@@ -164,6 +164,11 @@ class Feed:
             if not isinstance(callback, list):
                 self.callbacks[key] = [callback]
 
+        # define conn_id
+        channels_id = '|'.join(list(self.channels))
+        symbols_id = '|'.join(list(self.symbols))
+        self.conn_id = '-'.join([channels_id, self.id, symbols_id])
+
     def _connect_builder(self, address: str, options: list, header=None, sub=None, handler=None):
         """
         Helper method for building a custom connect tuple
@@ -187,16 +192,12 @@ class Feed:
         2. the subscribe function pointer associated with this connection
         3. the message handler for this connection
         """
-        channels_id = '|'.join(list(self.channels))
-        symbols_id = '|'.join(list(self.symbols))
-        conn_id = '-'.join([channels_id, self.id, symbols_id])
-        
         ret = []
         if isinstance(self.address, str):
-            return [(WSAsyncConn(self.address, conn_id, **self.ws_defaults), self.subscribe, self.message_handler)]
+            return [(WSAsyncConn(self.address, self.conn_id, **self.ws_defaults), self.subscribe, self.message_handler)]
 
         for _, addr in self.address.items():
-            ret.append((WSAsyncConn(addr, conn_id, **self.ws_defaults), self.subscribe, self.message_handler))
+            ret.append((WSAsyncConn(addr, self.conn_id, **self.ws_defaults), self.subscribe, self.message_handler))
         return ret
 
     @classmethod
