@@ -191,7 +191,8 @@ _feed_to_exchange_map = {
         FTX: 'open_interest',
         BINANCE_FUTURES: 'open_interest',
         BINANCE_DELIVERY: 'open_interest',
-        BYBIT: 'instrument_info.100ms'
+        BYBIT: 'instrument_info.100ms',
+        HUOBI_SWAP: 'open_interest'
     },
     LIQUIDATIONS: {
         BITMEX: 'liquidation',
