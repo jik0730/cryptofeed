@@ -34,10 +34,10 @@ def timestamp_normalize(exchange, ts):
             return ts.timestamp()
     if exchange in {BITFLYER, COINBASE, BLOCKCHAIN}:
         return ts.timestamp()
-    elif exchange in {BITMEX, HITBTC, OKCOIN, OKEX, FTX, FTX_US, BITCOINCOM, PROBIT, COINGECKO}:
+    elif exchange in {BITMEX, HITBTC, OKCOIN, FTX, FTX_US, BITCOINCOM, PROBIT, COINGECKO}:
         return pd.Timestamp(ts).timestamp()
     elif exchange in {HUOBI, HUOBI_DM, HUOBI_SWAP, BITFINEX, DERIBIT, BINANCE, BINANCE_US, BINANCE_FUTURES,
-                      BINANCE_DELIVERY, GEMINI, BITTREX, BITMAX, KRAKEN_FUTURES, UPBIT}:
+                      BINANCE_DELIVERY, GEMINI, BITTREX, BITMAX, KRAKEN_FUTURES, UPBIT, OKEX}:
         return ts / 1000.0
     elif exchange in {BITSTAMP}:
         return ts / 1000000.0
@@ -64,7 +64,7 @@ _feed_to_exchange_map = {
         HUOBI_DM: 'depth.step0',
         HUOBI_SWAP: 'depth.step0',
         OKCOIN: 'spot/depth_l2_tbt',
-        OKEX: '{}/depth_l2_tbt',
+        # OKEX: '{}/depth_l2_tbt',
         DERIBIT: 'book',
         BYBIT: 'orderBookL2_25',
         FTX: 'orderbook',
@@ -126,7 +126,7 @@ _feed_to_exchange_map = {
         HUOBI_DM: 'trade.detail',
         HUOBI_SWAP: 'trade.detail',
         OKCOIN: 'spot/trade',
-        OKEX: '{}/trade',
+        OKEX: 'trades',
         DERIBIT: 'trades',
         BYBIT: 'trade',
         FTX: 'trades',
@@ -158,7 +158,7 @@ _feed_to_exchange_map = {
         HUOBI: UNSUPPORTED,
         HUOBI_DM: UNSUPPORTED,
         OKCOIN: '{}/ticker',
-        OKEX: '{}/ticker',
+        # OKEX: '{}/ticker',
         DERIBIT: "ticker",
         BYBIT: UNSUPPORTED,
         FTX: "ticker",
@@ -179,12 +179,12 @@ _feed_to_exchange_map = {
         BINANCE_DELIVERY: 'markPrice',
         KRAKEN_FUTURES: 'ticker',
         DERIBIT: 'ticker',
-        OKEX: '{}/funding_rate',
+        # OKEX: '{}/funding_rate',
         FTX: 'funding',
         HUOBI_SWAP: 'funding'
     },
     OPEN_INTEREST: {
-        OKEX: '{}/ticker',
+        OKEX: 'open-interest',
         BITMEX: 'instrument',
         KRAKEN_FUTURES: 'ticker',
         DERIBIT: 'ticker',
