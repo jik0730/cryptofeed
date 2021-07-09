@@ -15,7 +15,7 @@ import pandas as pd
 
 from cryptofeed.defines import (BINANCE, BINANCE_DELIVERY, BINANCE_FUTURES, BINANCE_US, BITCOINCOM, BITFLYER, BITFINEX, BITMAX, BITMEX,
                                 BITSTAMP, BITTREX, BLOCKCHAIN, BYBIT, CANDLES, COINBASE, COINGECKO,
-                                DERIBIT, EXX, FTX, FTX_US, GATEIO, GEMINI, HITBTC, HUOBI, HUOBI_DM, HUOBI_SWAP,
+                                DERIBIT, EXX, FTX, FTX_US, GATEIO, GATEIO_FUTURES, GEMINI, HITBTC, HUOBI, HUOBI_DM, HUOBI_SWAP,
                                 KRAKEN, KRAKEN_FUTURES, KUCOIN, OKCOIN, OKEX, POLONIEX, PROBIT, UPBIT)
 from cryptofeed.defines import (FILL_OR_KILL, IMMEDIATE_OR_CANCEL, LIMIT, MAKER_OR_CANCEL, MARKET, UNSUPPORTED)
 from cryptofeed.defines import (FUNDING, FUTURES_INDEX, L2_BOOK, L3_BOOK, LIQUIDATIONS, OPEN_INTEREST, MARKET_INFO,
@@ -137,6 +137,7 @@ _feed_to_exchange_map = {
         BITMAX: "trades:",
         UPBIT: TRADES,
         GATEIO: 'spot.trades',
+        GATEIO_FUTURES: 'futures.trades',
         PROBIT: 'recent_trades',
         KUCOIN: '/market/match'
     },
@@ -192,7 +193,8 @@ _feed_to_exchange_map = {
         BINANCE_FUTURES: 'open_interest',
         BINANCE_DELIVERY: 'open_interest',
         BYBIT: 'instrument_info.100ms',
-        HUOBI_SWAP: 'open_interest'
+        HUOBI_SWAP: 'open_interest',
+        GATEIO_FUTURES: 'futures.tickers',
     },
     LIQUIDATIONS: {
         BITMEX: 'liquidation',
