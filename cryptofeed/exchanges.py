@@ -50,6 +50,7 @@ EXCHANGE_MAP = {
     BINANCE_DELIVERY: BinanceDelivery,
     BITCOINCOM: BitcoinCom,
     BITFINEX: Bitfinex,
+    BITFINEX_FUTURES: BitfinexFutures,
     BITFLYER: Bitflyer,
     BITMAX: Bitmax,
     BITMEX: Bitmex,
@@ -76,5 +77,6 @@ EXCHANGE_MAP = {
     POLONIEX: Poloniex,
     UPBIT: Upbit,
     GATEIO: Gateio,
+    GATEIO_FUTURES: GateioFutures,
     PROBIT: Probit,
 }
