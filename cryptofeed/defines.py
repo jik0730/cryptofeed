@@ -10,6 +10,7 @@ as well as some documentation (in comment form) regarding
 the book definitions and structure
 '''
 BITFINEX = 'BITFINEX'
+BITFINEX_FUTURES = 'BITFINEX_FUTURES'
 BITMEX = 'BITMEX'
 BINANCE = 'BINANCE'
 BINANCE_US = 'BINANCE_US'

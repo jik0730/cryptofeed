@@ -13,7 +13,7 @@ import logging
 
 import pandas as pd
 
-from cryptofeed.defines import (BINANCE, BINANCE_DELIVERY, BINANCE_FUTURES, BINANCE_US, BITCOINCOM, BITFLYER, BITFINEX, BITMAX, BITMEX,
+from cryptofeed.defines import (BINANCE, BINANCE_DELIVERY, BINANCE_FUTURES, BINANCE_US, BITCOINCOM, BITFLYER, BITFINEX, BITFINEX_FUTURES, BITMAX, BITMEX,
                                 BITSTAMP, BITTREX, BLOCKCHAIN, BYBIT, CANDLES, COINBASE, COINGECKO,
                                 DERIBIT, EXX, FTX, FTX_US, GATEIO, GATEIO_FUTURES, GEMINI, HITBTC, HUOBI, HUOBI_DM, HUOBI_SWAP,
                                 KRAKEN, KRAKEN_FUTURES, KUCOIN, OKCOIN, OKEX, POLONIEX, PROBIT, UPBIT)
@@ -195,6 +195,7 @@ _feed_to_exchange_map = {
         BYBIT: 'instrument_info.100ms',
         HUOBI_SWAP: 'open_interest',
         GATEIO_FUTURES: 'futures.tickers',
+        BITFINEX_FUTURES: 'status',
     },
     LIQUIDATIONS: {
         BITMEX: 'liquidation',
