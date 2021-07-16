@@ -59,20 +59,21 @@ class HuobiSwap(HuobiDM):
                         data = await response.text()
                         data = json.loads(data, parse_float=Decimal)
 
-                        received = time.time()
-                        update = (data['data']['funding_rate'], timestamp_normalize(self.id, int(data['data']['next_funding_time'])))
-                        if pair in self.funding_updates and self.funding_updates[pair] == update:
-                            await asyncio.sleep(1)
-                            continue
-                        self.funding_updates[pair] = update
-                        await self.callback(FUNDING,
-                                            feed=self.id,
-                                            symbol=pair,
-                                            timestamp=timestamp_normalize(self.id, data['ts']),
-                                            receipt_timestamp=received,
-                                            rate=Decimal(update[0]),
-                                            next_funding_time=update[1]
-                                            )
+                        if data['status'] == 'ok' and 'data' in data:
+                            received = time.time()
+                            update = (data['data']['funding_rate'], timestamp_normalize(self.id, int(data['data']['next_funding_time'])))
+                            if pair in self.funding_updates and self.funding_updates[pair] == update:
+                                await asyncio.sleep(1)
+                                continue
+                            self.funding_updates[pair] = update
+                            await self.callback(FUNDING,
+                                                feed=self.id,
+                                                symbol=pair,
+                                                timestamp=timestamp_normalize(self.id, data['ts']),
+                                                receipt_timestamp=received,
+                                                rate=Decimal(update[0]),
+                                                next_funding_time=update[1]
+                                                )
 
                         await asyncio.sleep(0.1)
 
@@ -88,21 +89,22 @@ class HuobiSwap(HuobiDM):
                         data = await response.text()
                         data = json.loads(data, parse_float=Decimal)
 
-                        received = time.time()
-                        if pair[-3:] == 'USD':  # For inverse perpetual
-                            oi = data['data'][0]['volume']
-                        else:  # For USDT perpetual
-                            oi = data['data'][0]['value']
-                        if oi != self.oi_updates.get(pair, None):
-                            self.oi_updates[pair] = oi
-                            await self.callback(OPEN_INTEREST,
-                                                feed=self.id,
-                                                symbol=pair,
-                                                open_interest=Decimal(oi),
-                                                timestamp=timestamp_normalize(self.id, data['ts']),
-                                                receipt_timestamp=received
-                                                )
-                            await asyncio.sleep(1)
+                        if data['status'] == 'ok' and 'data' in data:
+                            received = time.time()
+                            if pair[-3:] == 'USD':  # For inverse perpetual
+                                oi = data['data'][0]['volume']
+                            else:  # For USDT perpetual
+                                oi = data['data'][0]['value']
+                            if oi != self.oi_updates.get(pair, None):
+                                self.oi_updates[pair] = oi
+                                await self.callback(OPEN_INTEREST,
+                                                    feed=self.id,
+                                                    symbol=pair,
+                                                    open_interest=Decimal(oi),
+                                                    timestamp=timestamp_normalize(self.id, data['ts']),
+                                                    receipt_timestamp=received
+                                                    )
+                        await asyncio.sleep(1)
                 await asyncio.sleep(60)
 
     def connect(self) -> List[Tuple[AsyncConnection, Callable[[None], None], Callable[[str, float], None]]]:
