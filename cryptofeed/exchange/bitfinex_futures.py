@@ -75,7 +75,7 @@ class BitfinexFutures(Bitfinex):
         """
         if msg[1] == 'hb':
             return  # ignore heartbeats
-        open_interest = msg[1][17]
+        open_interest = msg[1][17] * msg[1][2]  # USD
         await self.callback(OPEN_INTEREST, feed=self.id,
                             symbol=pair,
                             open_interest=Decimal(open_interest),

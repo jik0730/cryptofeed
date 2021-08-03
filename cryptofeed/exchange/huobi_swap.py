@@ -91,16 +91,12 @@ class HuobiSwap(HuobiDM):
 
                         if data['status'] == 'ok' and 'data' in data:
                             received = time.time()
-                            if pair[-3:] == 'USD':  # For inverse perpetual
-                                oi = data['data'][0]['volume']
-                            else:  # For USDT perpetual
-                                oi = data['data'][0]['value']
                             if oi != self.oi_updates.get(pair, None):
                                 self.oi_updates[pair] = oi
                                 await self.callback(OPEN_INTEREST,
                                                     feed=self.id,
                                                     symbol=pair,
-                                                    open_interest=Decimal(oi),
+                                                    open_interest=Decimal(data['data'][0]['amount']),
                                                     timestamp=timestamp_normalize(self.id, data['ts']),
                                                     receipt_timestamp=received
                                                     )
