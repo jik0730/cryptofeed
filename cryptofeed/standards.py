@@ -111,6 +111,7 @@ _feed_to_exchange_map = {
         HITBTC: 'subscribeTrades',
         BITSTAMP: 'live_trades',
         BITFINEX: 'trades',
+        BITFINEX_FUTURES: 'trades',
         BITFLYER: 'lightning_executions_{}',
         COINBASE: 'matches',
         BITMEX: 'trade',
