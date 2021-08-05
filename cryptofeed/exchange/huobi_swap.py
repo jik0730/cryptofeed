@@ -91,12 +91,13 @@ class HuobiSwap(HuobiDM):
 
                         if data['status'] == 'ok' and 'data' in data:
                             received = time.time()
+                            oi = data['data'][0]['amount']
                             if oi != self.oi_updates.get(pair, None):
                                 self.oi_updates[pair] = oi
                                 await self.callback(OPEN_INTEREST,
                                                     feed=self.id,
                                                     symbol=pair,
-                                                    open_interest=Decimal(data['data'][0]['amount']),
+                                                    open_interest=Decimal(oi),
                                                     timestamp=timestamp_normalize(self.id, data['ts']),
                                                     receipt_timestamp=received
                                                     )
