@@ -36,7 +36,7 @@ def timestamp_normalize(exchange, ts):
         return ts.timestamp()
     elif exchange in {BITMEX, HITBTC, OKCOIN, FTX, FTX_US, BITCOINCOM, PROBIT, COINGECKO}:
         return pd.Timestamp(ts).timestamp()
-    elif exchange in {HUOBI, HUOBI_DM, HUOBI_SWAP, BITFINEX, DERIBIT, BINANCE, BINANCE_US, BINANCE_FUTURES,
+    elif exchange in {HUOBI, HUOBI_DM, HUOBI_SWAP, BITFINEX, BITFINEX_FUTURES, DERIBIT, BINANCE, BINANCE_US, BINANCE_FUTURES,
                       BINANCE_DELIVERY, GEMINI, BITTREX, BITMAX, KRAKEN_FUTURES, UPBIT, OKEX}:
         return ts / 1000.0
     elif exchange in {BITSTAMP}:
