@@ -13,9 +13,9 @@ import logging
 
 import pandas as pd
 
-from cryptofeed.defines import (BINANCE, BINANCE_DELIVERY, BINANCE_FUTURES, BINANCE_US, BITCOINCOM, BITFLYER, BITFINEX, BITMAX, BITMEX,
+from cryptofeed.defines import (BINANCE, BINANCE_DELIVERY, BINANCE_FUTURES, BINANCE_US, BITCOINCOM, BITFLYER, BITFINEX, BITFINEX_FUTURES, BITMAX, BITMEX,
                                 BITSTAMP, BITTREX, BLOCKCHAIN, BYBIT, CANDLES, COINBASE, COINGECKO,
-                                DERIBIT, EXX, FTX, FTX_US, GATEIO, GEMINI, HITBTC, HUOBI, HUOBI_DM, HUOBI_SWAP,
+                                DERIBIT, EXX, FTX, FTX_US, GATEIO, GATEIO_FUTURES, GEMINI, HITBTC, HUOBI, HUOBI_DM, HUOBI_SWAP,
                                 KRAKEN, KRAKEN_FUTURES, KUCOIN, OKCOIN, OKEX, POLONIEX, PROBIT, UPBIT)
 from cryptofeed.defines import (FILL_OR_KILL, IMMEDIATE_OR_CANCEL, LIMIT, MAKER_OR_CANCEL, MARKET, UNSUPPORTED)
 from cryptofeed.defines import (FUNDING, FUTURES_INDEX, L2_BOOK, L3_BOOK, LIQUIDATIONS, OPEN_INTEREST, MARKET_INFO,
@@ -34,10 +34,10 @@ def timestamp_normalize(exchange, ts):
             return ts.timestamp()
     if exchange in {BITFLYER, COINBASE, BLOCKCHAIN}:
         return ts.timestamp()
-    elif exchange in {BITMEX, HITBTC, OKCOIN, OKEX, FTX, FTX_US, BITCOINCOM, PROBIT, COINGECKO}:
+    elif exchange in {BITMEX, HITBTC, OKCOIN, FTX, FTX_US, BITCOINCOM, PROBIT, COINGECKO}:
         return pd.Timestamp(ts).timestamp()
-    elif exchange in {HUOBI, HUOBI_DM, HUOBI_SWAP, BITFINEX, DERIBIT, BINANCE, BINANCE_US, BINANCE_FUTURES,
-                      BINANCE_DELIVERY, GEMINI, BITTREX, BITMAX, KRAKEN_FUTURES, UPBIT}:
+    elif exchange in {HUOBI, HUOBI_DM, HUOBI_SWAP, BITFINEX, BITFINEX_FUTURES, DERIBIT, BINANCE, BINANCE_US, BINANCE_FUTURES,
+                      BINANCE_DELIVERY, GEMINI, BITTREX, BITMAX, KRAKEN_FUTURES, UPBIT, OKEX}:
         return ts / 1000.0
     elif exchange in {BITSTAMP}:
         return ts / 1000000.0
@@ -64,7 +64,7 @@ _feed_to_exchange_map = {
         HUOBI_DM: 'depth.step0',
         HUOBI_SWAP: 'depth.step0',
         OKCOIN: 'spot/depth_l2_tbt',
-        OKEX: '{}/depth_l2_tbt',
+        # OKEX: '{}/depth_l2_tbt',
         DERIBIT: 'book',
         BYBIT: 'orderBookL2_25',
         FTX: 'orderbook',
@@ -111,6 +111,7 @@ _feed_to_exchange_map = {
         HITBTC: 'subscribeTrades',
         BITSTAMP: 'live_trades',
         BITFINEX: 'trades',
+        BITFINEX_FUTURES: 'trades',
         BITFLYER: 'lightning_executions_{}',
         COINBASE: 'matches',
         BITMEX: 'trade',
@@ -126,7 +127,7 @@ _feed_to_exchange_map = {
         HUOBI_DM: 'trade.detail',
         HUOBI_SWAP: 'trade.detail',
         OKCOIN: 'spot/trade',
-        OKEX: '{}/trade',
+        OKEX: 'trades',
         DERIBIT: 'trades',
         BYBIT: 'trade',
         FTX: 'trades',
@@ -137,6 +138,7 @@ _feed_to_exchange_map = {
         BITMAX: "trades:",
         UPBIT: TRADES,
         GATEIO: 'spot.trades',
+        GATEIO_FUTURES: 'futures.trades',
         PROBIT: 'recent_trades',
         KUCOIN: '/market/match'
     },
@@ -158,7 +160,7 @@ _feed_to_exchange_map = {
         HUOBI: UNSUPPORTED,
         HUOBI_DM: UNSUPPORTED,
         OKCOIN: '{}/ticker',
-        OKEX: '{}/ticker',
+        # OKEX: '{}/ticker',
         DERIBIT: "ticker",
         BYBIT: UNSUPPORTED,
         FTX: "ticker",
@@ -179,19 +181,22 @@ _feed_to_exchange_map = {
         BINANCE_DELIVERY: 'markPrice',
         KRAKEN_FUTURES: 'ticker',
         DERIBIT: 'ticker',
-        OKEX: '{}/funding_rate',
+        # OKEX: '{}/funding_rate',
         FTX: 'funding',
         HUOBI_SWAP: 'funding'
     },
     OPEN_INTEREST: {
-        OKEX: '{}/ticker',
+        OKEX: 'open-interest',
         BITMEX: 'instrument',
         KRAKEN_FUTURES: 'ticker',
         DERIBIT: 'ticker',
         FTX: 'open_interest',
         BINANCE_FUTURES: 'open_interest',
         BINANCE_DELIVERY: 'open_interest',
-        BYBIT: 'instrument_info.100ms'
+        BYBIT: 'instrument_info.100ms',
+        HUOBI_SWAP: 'open_interest',
+        GATEIO_FUTURES: 'futures.tickers',
+        BITFINEX_FUTURES: 'status',
     },
     LIQUIDATIONS: {
         BITMEX: 'liquidation',

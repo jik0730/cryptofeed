@@ -35,7 +35,7 @@ from sortedcontainers import SortedDict as sd
 from yapic import json
 
 from cryptofeed.connection import AsyncConnection
-from cryptofeed.defines import BID, ASK, BUY, FUNDING, HUOBI_DM, L2_BOOK, SELL, TRADES
+from cryptofeed.defines import BID, ASK, BUY, FUNDING, HUOBI_DM, L2_BOOK, SELL, TRADES, OPEN_INTEREST
 from cryptofeed.feed import Feed
 from cryptofeed.standards import timestamp_normalize
 
@@ -71,8 +71,13 @@ class HuobiDM(Feed):
     def __init__(self, **kwargs):
         super().__init__('wss://www.hbdm.com/ws', **kwargs)
 
-    def __reset(self):
-        self.l2_book = {}
+    def __reset(self, quote=None):
+        if quote is None:
+            self.l2_book = {}
+        else:
+            for symbol in self.l2_book:
+                if quote in symbol:
+                    del self.l2_book[symbol]
 
     async def _book(self, msg: dict, timestamp: float):
         """
@@ -163,13 +168,19 @@ class HuobiDM(Feed):
         else:
             LOG.warning("%s: Invalid message type %s", self.id, msg)
 
-    async def subscribe(self, conn: AsyncConnection):
-        self.__reset()
+    async def subscribe(self, conn: AsyncConnection, quote: str = None):
+        self.__reset(quote=quote)
         client_id = 0
         for chan in self.subscription:
-            if chan == FUNDING:
+            if chan in [FUNDING, OPEN_INTEREST]:
                 continue
             for pair in self.subscription[chan]:
+                # HuobiSwap uses separate addresses for difference quote currencies
+                if 'USDT' not in pair and quote == 'USDT':
+                    continue
+                if 'USDT' in pair and quote == 'USD':
+                    continue
+
                 client_id += 1
                 pair = self.exchange_symbol_to_std_symbol(pair)
                 await conn.write(json.dumps(
