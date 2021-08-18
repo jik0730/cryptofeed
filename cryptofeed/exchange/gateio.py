@@ -239,13 +239,18 @@ class Gateio(Feed):
         else:
             LOG.warning("%s: Invalid message type %s", self.id, msg)
 
-    async def subscribe(self, conn: AsyncConnection):
+    async def subscribe(self, conn: AsyncConnection, quote: str = None):
         self._reset()
         for chan in self.subscription:
             symbols = self.subscription[chan]
             nchan = normalize_channel(self.id, chan)
             if nchan in {L2_BOOK, CANDLES}:
                 for symbol in symbols:
+                    # Gateio Futures uses separate addresses for difference quote currencies
+                    if 'USDT' not in symbol and quote == 'USDT':
+                        continue
+                    if 'USDT' in symbol and quote == 'USD':
+                        continue
                     await conn.write(json.dumps(
                         {
                             "time": int(time.time()),
@@ -255,11 +260,19 @@ class Gateio(Feed):
                         }
                     ))
             else:
+                # Gateio Futures uses separate addresses for difference quote currencies
+                symbols_filtered = []
+                for symbol in symbols:
+                    if 'USDT' not in symbol and quote == 'USDT':
+                        continue
+                    if 'USDT' in symbol and quote == 'USD':
+                        continue
+                    symbols_filtered.append(symbol)
                 await conn.write(json.dumps(
                     {
                         "time": int(time.time()),
                         "channel": chan,
                         "event": 'subscribe',
-                        "payload": symbols,
+                        "payload": symbols_filtered,
                     }
                 ))

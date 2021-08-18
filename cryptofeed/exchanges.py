@@ -14,6 +14,7 @@ from cryptofeed.exchange.binance_delivery import BinanceDelivery
 from cryptofeed.exchange.binance_us import BinanceUS
 from cryptofeed.exchange.bitcoincom import BitcoinCom
 from cryptofeed.exchange.bitfinex import Bitfinex
+from cryptofeed.exchange.bitfinex_futures import BitfinexFutures
 from cryptofeed.exchange.bitflyer import Bitflyer
 from cryptofeed.exchange.bitmax import Bitmax
 from cryptofeed.exchange.bitmex import Bitmex
@@ -27,6 +28,7 @@ from cryptofeed.exchange.exx import EXX
 from cryptofeed.exchange.ftx import FTX
 from cryptofeed.exchange.ftx_us import FTXUS
 from cryptofeed.exchange.gateio import Gateio
+from cryptofeed.exchange.gateio_futures import GateioFutures
 from cryptofeed.exchange.gemini import Gemini
 from cryptofeed.exchange.hitbtc import HitBTC
 from cryptofeed.exchange.huobi import Huobi
@@ -48,6 +50,7 @@ EXCHANGE_MAP = {
     BINANCE_DELIVERY: BinanceDelivery,
     BITCOINCOM: BitcoinCom,
     BITFINEX: Bitfinex,
+    BITFINEX_FUTURES: BitfinexFutures,
     BITFLYER: Bitflyer,
     BITMAX: Bitmax,
     BITMEX: Bitmex,
@@ -74,5 +77,6 @@ EXCHANGE_MAP = {
     POLONIEX: Poloniex,
     UPBIT: Upbit,
     GATEIO: Gateio,
+    GATEIO_FUTURES: GateioFutures,
     PROBIT: Probit,
 }

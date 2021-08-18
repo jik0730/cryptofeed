@@ -298,13 +298,13 @@ class Bitfinex(Feed):
             LOG.error('%s: Error from exchange: %s', conn.uuid, msg)
         elif msg['event'] in ('info', 'conf'):
             LOG.info('%s: %s from exchange: %s', conn.uuid, msg['event'], msg)
-        elif 'chanId' in msg and 'symbol' in msg:
+        elif 'chanId' in msg and ('symbol' in msg or 'key' in msg):
             self.register_channel_handler(msg, conn)
         else:
             LOG.warning('%s: Unexpected msg from exchange: %s', conn.uuid, msg)
 
     def register_channel_handler(self, msg: dict, conn: AsyncConnection):
-        symbol = msg['symbol']
+        symbol = msg['symbol'] if 'symbol' in msg else msg['key'][6:]
         is_funding = (symbol[0] == 'f')
         pair = self.exchange_symbol_to_std_symbol(symbol)
 
@@ -327,6 +327,11 @@ class Bitfinex(Feed):
                 handler = self._do_nothing
             else:
                 handler = partial(self._book, pair, self.l2_book[pair])
+        elif msg['channel'] == 'status':
+            if is_funding:
+                handler = partial(self._funding, pair)
+            else:
+                handler = partial(self._status, pair)
         else:
             LOG.warning('%s %s: Unexpected message %s', conn.uuid, pair, msg)
             return
@@ -388,4 +393,7 @@ class Bitfinex(Feed):
                     except IndexError:
                         # any non specified params will be defaulted
                         pass
+            elif 'status' == chan:
+                del message['symbol']
+                message['key'] = 'deriv:' + pair
             await connection.write(json.dumps(message))

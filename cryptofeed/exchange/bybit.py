@@ -183,10 +183,17 @@ class Bybit(Feed):
             else:
                 continue
 
-            if 'open_interest' in info:
+            if 'open_interest' in info:  # For inverse perpetual
                 await self.callback(OPEN_INTEREST, feed=self.id,
                                     symbol=self.exchange_symbol_to_std_symbol(info['symbol']),
                                     open_interest=Decimal(info['open_interest']),
+                                    timestamp=ts,
+                                    receipt_timestamp=timestamp)
+            elif 'open_interest_e8' in info:  # For USDT perpetual
+                oi_usd = str(int(info["open_interest_e8"]) / 1e8)
+                await self.callback(OPEN_INTEREST, feed=self.id,
+                                    symbol=self.exchange_symbol_to_std_symbol(info['symbol']),
+                                    open_interest=Decimal(oi_usd),
                                     timestamp=ts,
                                     receipt_timestamp=timestamp)
 
