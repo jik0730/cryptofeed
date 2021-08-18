@@ -31,6 +31,7 @@ class ConnectionHandler:
         self.exceptions = exceptions
         self.log_on_error = log_on_error
         self.timeout = timeout
+        self.last_timeout = time.time()
         self.timeout_interval = timeout_interval
         self.running = True
 
@@ -40,7 +41,8 @@ class ConnectionHandler:
     async def _watcher(self):
         while self.conn.is_open and self.running:
             if self.conn.last_message:
-                if time.time() - self.conn.last_message > self.timeout:
+                if min(time.time() - self.conn.last_message, time.time() - self.last_timeout) > self.timeout:
+                    self.last_timeout = time.time()
                     LOG.warning("%s: received no messages within timeout, restarting connection", self.conn.uuid)
                     await self.conn.close()
                     break
