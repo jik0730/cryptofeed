@@ -202,6 +202,7 @@ _feed_to_exchange_map = {
         BITMEX: 'liquidation',
         BINANCE_FUTURES: 'forceOrder',
         BINANCE_DELIVERY: 'forceOrder',
+        BYBIT: 'liquidation',
         FTX: 'trades',
         DERIBIT: 'trades',
         OKEX: LIQUIDATIONS,
