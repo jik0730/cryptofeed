@@ -14,7 +14,7 @@ from sortedcontainers import SortedDict as sd
 from yapic import json
 
 from cryptofeed.connection import AsyncConnection, WSAsyncConn
-from cryptofeed.defines import BID, ASK, BUY, BYBIT, L2_BOOK, SELL, TRADES, OPEN_INTEREST, FUTURES_INDEX
+from cryptofeed.defines import BID, ASK, BUY, BYBIT, L2_BOOK, SELL, TRADES, OPEN_INTEREST, FUTURES_INDEX, LIQUIDATIONS
 from cryptofeed.feed import Feed
 from cryptofeed.standards import timestamp_normalize
 
@@ -67,6 +67,8 @@ class Bybit(Feed):
             await self._book(msg, timestamp)
         elif "instrument_info" in msg["topic"]:
             await self._instrument_info(msg, timestamp)
+        elif "liquidation" in msg["topic"]:
+            await self._liquidations(msg, timestamp)
         else:
             LOG.warning("%s: Invalid message type %s", self.id, msg)
 
@@ -273,3 +275,33 @@ class Bybit(Feed):
         if isinstance(ts, str):
             ts = int(ts)
         await self.book_callback(self.l2_book[pair], L2_BOOK, pair, forced, delta, ts / 1000000, timestamp)
+
+    async def _liquidations(self, msg: dict, timestamp: float):
+        """
+        {
+            "topic":"liquidation.ETHUSD",
+            "data": {
+                "symbol":"ETHUSD",
+                "side":"Sell",
+                "price":"3384.15",
+                "qty":"3655",
+                "time":1631608881954
+            }
+        }
+        """
+        data = msg['data']
+        if isinstance(data['time'], str):
+            ts = int(data['time'])
+        else:
+            ts = data['time']
+
+        pair = self.exchange_symbol_to_std_symbol(data['symbol'])
+        await self.callback(LIQUIDATIONS,
+                            feed=self.id,
+                            symbol=pair,
+                            side=BUY if data['side'] == 'Buy' else SELL,
+                            leaves_qty=Decimal(data['qty']),
+                            price=Decimal(data['price']),
+                            order_id=None,
+                            timestamp=timestamp_normalize(self.id, ts),
+                            receipt_timestamp=timestamp)
