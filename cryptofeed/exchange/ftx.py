@@ -46,7 +46,7 @@ class FTX(Feed):
         return ret, info
 
     def __init__(self, **kwargs):
-        super().__init__('wss://ftexchange.com/ws/', **kwargs)
+        super().__init__('wss://ftx.com/ws/', **kwargs)
 
     def __reset(self):
         self.l2_book = {}
