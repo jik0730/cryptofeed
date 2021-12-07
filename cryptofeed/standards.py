@@ -206,6 +206,7 @@ _feed_to_exchange_map = {
         FTX: 'trades',
         DERIBIT: 'trades',
         OKEX: LIQUIDATIONS,
+        BITFINEX_FUTURES: 'status_liquidation',
     },
     MARKET_INFO: {
         COINGECKO: MARKET_INFO

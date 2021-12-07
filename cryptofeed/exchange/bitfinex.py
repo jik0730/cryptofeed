@@ -306,7 +306,10 @@ class Bitfinex(Feed):
     def register_channel_handler(self, msg: dict, conn: AsyncConnection):
         symbol = msg['symbol'] if 'symbol' in msg else msg['key'][6:]
         is_funding = (symbol[0] == 'f')
-        pair = self.exchange_symbol_to_std_symbol(symbol)
+        if msg["key"] == "liq:global":
+            pair = None
+        else:
+            pair = self.exchange_symbol_to_std_symbol(symbol)
 
         if msg['channel'] == 'ticker':
             if is_funding:
@@ -377,6 +380,7 @@ class Bitfinex(Feed):
             'flags': SEQ_ALL
         }))
 
+        liq_flag = False  # liquidation feed is globally defined so we need to check if it is enabled at most once
         for pair, chan in options:
             message = {'event': 'subscribe',
                        'channel': chan,
@@ -396,4 +400,11 @@ class Bitfinex(Feed):
             elif 'status' == chan:
                 del message['symbol']
                 message['key'] = 'deriv:' + pair
+            elif 'status_liquidation' == chan:
+                if liq_flag:
+                    continue
+                del message['symbol']
+                message['channel'] = 'status'
+                message['key'] = 'liq:global'
+                liq_flag = True
             await connection.write(json.dumps(message))
