@@ -82,6 +82,7 @@ IMMEDIATE_OR_CANCEL = 'immediate-or-cancel'
 OPEN = 'open'
 PENDING = 'pending'
 FILLED = 'filled'
+UNFILLED = 'unfilled'
 PARTIAL = 'partial'
 CANCELLED = 'cancelled'
 
