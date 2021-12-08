@@ -35,7 +35,7 @@ from sortedcontainers import SortedDict as sd
 from yapic import json
 
 from cryptofeed.connection import AsyncConnection
-from cryptofeed.defines import BID, ASK, BUY, FUNDING, HUOBI_DM, L2_BOOK, SELL, TRADES, OPEN_INTEREST
+from cryptofeed.defines import BID, ASK, BUY, FUNDING, HUOBI_DM, L2_BOOK, SELL, TRADES, OPEN_INTEREST, LIQUIDATIONS
 from cryptofeed.feed import Feed
 from cryptofeed.standards import timestamp_normalize
 
@@ -147,6 +147,39 @@ class HuobiDM(Feed):
                                 receipt_timestamp=timestamp
                                 )
 
+    async def _liquidations(self, msg: dict, timestamp: float):
+        """
+        {
+            "op":"notify",
+            "topic":"public.BTC-USDT.liquidation_orders",
+            "ts":1580815422403,
+            "data":[
+                {
+                    "contract_code": "BTC-USDT",
+                    "symbol": "BTC",
+                    "direction": "sell",
+                    "offset": "close",
+                    "volume": 624,
+                    "price": 16701.4,
+                    "created_at": 1606380004694,
+                    "amount": 0.624,
+                    "trade_turnover": 10421.6736
+                }
+            ]
+        }
+        """
+        for data in msg['data']:
+            pair = self.exchange_symbol_to_std_symbol(data['contract_code'])
+            await self.callback(LIQUIDATIONS,
+                                feed=self.id,
+                                symbol=pair,
+                                side=data['direction'],
+                                leaves_qty=Decimal(data['amount']),
+                                price=Decimal(data['price']),
+                                order_id=None,
+                                timestamp=timestamp_normalize(self.id, data['created_at']),
+                                receipt_timestamp=timestamp)
+
     async def message_handler(self, msg: str, conn, timestamp: float):
 
         # unzip message
@@ -163,6 +196,11 @@ class HuobiDM(Feed):
                 await self._trade(msg, timestamp)
             elif 'depth' in msg['ch']:
                 await self._book(msg, timestamp)
+            else:
+                LOG.warning("%s: Invalid message type %s", self.id, msg)
+        elif 'topic' in msg:
+            if 'liquidation_orders' in msg['topic']:
+                await self._liquidations(msg, timestamp)
             else:
                 LOG.warning("%s: Invalid message type %s", self.id, msg)
         else:
@@ -183,9 +221,19 @@ class HuobiDM(Feed):
 
                 client_id += 1
                 pair = self.exchange_symbol_to_std_symbol(pair)
-                await conn.write(json.dumps(
-                    {
-                        "sub": f"market.{pair}.{chan}",
-                        "id": str(client_id)
-                    }
-                ))
+                if chan in ['liquidation_orders']:
+                    await conn.write(json.dumps(
+                        {
+                            "topic": f'public.{pair}.{chan}',
+                            "op": "sub",
+                        }
+                    ))
+                else:
+                    await conn.write(json.dumps(
+                        {
+                            "sub": f'market.{pair}.{chan}',
+                            "id": str(client_id),
+                        }
+                    ))
+                
+                

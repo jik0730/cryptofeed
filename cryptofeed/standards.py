@@ -207,6 +207,7 @@ _feed_to_exchange_map = {
         DERIBIT: 'trades',
         OKEX: LIQUIDATIONS,
         BITFINEX_FUTURES: 'status_liquidation',
+        HUOBI_SWAP: 'liquidation_orders',
     },
     MARKET_INFO: {
         COINGECKO: MARKET_INFO
