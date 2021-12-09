@@ -156,7 +156,7 @@ class GateioFutures(Gateio):
                             break
                     await self.callback(LIQUIDATIONS,
                                         feed=self.id,
-                                        symbol=pair,
+                                        symbol=self.exchange_symbol_to_std_symbol(pair),
                                         side=BUY if entry['size'] < 0 else SELL,
                                         leaves_qty=Decimal(abs(entry["size"])),
                                         price=Decimal(entry["fill_price"]),
