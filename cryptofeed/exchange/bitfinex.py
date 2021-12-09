@@ -306,7 +306,7 @@ class Bitfinex(Feed):
     def register_channel_handler(self, msg: dict, conn: AsyncConnection):
         symbol = msg['symbol'] if 'symbol' in msg else msg['key'][6:]
         is_funding = (symbol[0] == 'f')
-        if msg["key"] == "liq:global":
+        if "key" in msg and msg["key"] == "liq:global":
             pair = None
         else:
             pair = self.exchange_symbol_to_std_symbol(symbol)
