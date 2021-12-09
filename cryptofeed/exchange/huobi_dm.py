@@ -148,6 +148,7 @@ class HuobiDM(Feed):
                                 )
 
     async def _liquidations(self, msg: dict, timestamp: float):
+        # NOTE not working
         """
         {
             "op":"notify",
@@ -210,7 +211,7 @@ class HuobiDM(Feed):
         self.__reset(quote=quote)
         client_id = 0
         for chan in self.subscription:
-            if chan in [FUNDING, OPEN_INTEREST]:
+            if chan in [FUNDING, OPEN_INTEREST, LIQUIDATIONS]:
                 continue
             for pair in self.subscription[chan]:
                 # HuobiSwap uses separate addresses for difference quote currencies

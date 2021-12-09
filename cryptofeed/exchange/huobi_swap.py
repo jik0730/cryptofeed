@@ -10,7 +10,7 @@ import aiohttp
 from yapic import json
 
 from cryptofeed.connection import AsyncConnection, WSAsyncConn
-from cryptofeed.defines import HUOBI_SWAP, FUNDING, OPEN_INTEREST
+from cryptofeed.defines import HUOBI_SWAP, FUNDING, OPEN_INTEREST, LIQUIDATIONS, BUY, SELL
 from cryptofeed.exchange.huobi_dm import HuobiDM
 from cryptofeed.feed import Feed
 from cryptofeed.standards import timestamp_normalize
@@ -29,6 +29,10 @@ class HuobiSwap(HuobiDM):
     oi_endpoint = {
         'USD': 'https://api.hbdm.com/swap-api/v1/swap_open_interest?contract_code=',
         'USDT': 'https://api.hbdm.com/linear-swap-api/v1/swap_open_interest?contract_code=',
+    }
+    liq_endpoint = {
+        'USD': 'https://api.hbdm.com/swap-api/v1/swap_liquidation_orders?contract_code=',
+        'USDT': 'https://api.hbdm.com/linear-swap-api/v1/swap_liquidation_orders?contract_code=',
     }
 
     @classmethod
@@ -103,6 +107,74 @@ class HuobiSwap(HuobiDM):
                                                     )
                         await asyncio.sleep(1)
                 await asyncio.sleep(60)
+    
+    async def _liquidations(self, pairs):
+        """
+        {
+            "status": "ok",
+            "data": {
+                "orders": [
+                    {
+                        "contract_code": "BTC-USD",
+                        "symbol": "BTC",
+                        "direction": "buy",
+                        "offset": "close",
+                        "volume": 173,
+                        "price": 17102.9,
+                        "created_at": 1606381842485,
+                        "amount": 1.011524361365616357
+                    }
+                ],
+                "total_page": 4141,
+                "current_page": 1,
+                "total_size": 4141
+            },
+            "ts": 1606381842485
+        }
+        """
+        last_update = defaultdict(dict)
+
+        async with aiohttp.ClientSession() as session:
+            while True:
+                for pair in pairs:
+                    if pair[-3:] == 'USD':
+                        _liq_endpoint = self.liq_endpoint['USD'] + pair
+                    else:
+                        _liq_endpoint = self.liq_endpoint['USDT'] + pair
+                    _liq_endpoint += '&trade_type=0&create_date=7&page_size=50'
+
+                    async with session.get(_liq_endpoint) as response:
+                        data = await response.text()
+                        data = json.loads(data, parse_float=Decimal)
+
+                        if data['status'] == 'ok' and 'data' in data:
+                            received = time.time()
+                            if len(data['data']['orders']) == 0 or (len(data['data']['orders']) > 0 and last_update.get(pair) == data['data']['orders'][0]):
+                                continue
+
+                            shortage_flag = True
+                            for entry in data['data']['orders']:
+                                if pair in last_update:
+                                    if entry == last_update.get(pair):
+                                        shortage_flag = False
+                                        break
+                                await self.callback(LIQUIDATIONS,
+                                                    feed=self.id,
+                                                    symbol=pair,
+                                                    side=BUY if entry['direction'] == 'buy' else SELL,
+                                                    leaves_qty=Decimal(entry["amount"]),
+                                                    price=Decimal(entry["price"]),
+                                                    order_id=None,
+                                                    timestamp=timestamp_normalize(self.id, float(entry["created_at"])),
+                                                    receipt_timestamp=received)
+                        
+                        if pair in last_update and shortage_flag:
+                            LOG.warning("%s: Possible %s data shortage", self.id, LIQUIDATIONS)
+                        last_update[pair] = data['data']['orders'][0]
+                        await asyncio.sleep(0.1)
+            
+                time_to_sleep = round(60 - time.time() % 60, 6)  # call every minute
+                await asyncio.sleep(time_to_sleep)
 
     def connect(self) -> List[Tuple[AsyncConnection, Callable[[None], None], Callable[[str, float], None]]]:
         ret = []
@@ -123,5 +195,8 @@ class HuobiSwap(HuobiDM):
         if OPEN_INTEREST in self.subscription:
             loop = asyncio.get_event_loop()
             loop.create_task(self._open_interest(self.subscription[OPEN_INTEREST]))
+        if LIQUIDATIONS in self.subscription:
+            loop = asyncio.get_event_loop()
+            loop.create_task(self._liquidations(self.subscription[LIQUIDATIONS]))
 
         await super().subscribe(conn, quote=quote)

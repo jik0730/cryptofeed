@@ -88,7 +88,9 @@ class OKEx(Feed):
                     data = await self.http_conn.read(end_point)
                     data = json.loads(data, parse_float=Decimal)
                     timestamp = time.time()
-                    if len(data['data'][0]['details']) == 0 or (len(data['data'][0]['details']) > 0 and last_update.get(pair) == data['data'][0]['details'][0]):
+                    if len(data['data'][0]['details']) == 0:
+                        continue
+                    if len(data['data'][0]['details']) > 0 and last_update.get(pair) is not None and last_update.get(pair).get(status) == data['data'][0]['details'][0]:
                         continue
                     
                     shortage_flag = True
