@@ -208,6 +208,7 @@ _feed_to_exchange_map = {
         OKEX: LIQUIDATIONS,
         BITFINEX_FUTURES: 'status_liquidation',
         HUOBI_SWAP: 'liquidation_orders',
+        GATEIO_FUTURES: LIQUIDATIONS,
     },
     MARKET_INFO: {
         COINGECKO: MARKET_INFO

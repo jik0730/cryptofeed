@@ -1,11 +1,14 @@
+import asyncio
 from collections import defaultdict
 import logging
+import time
 from decimal import Decimal
 from functools import partial
 from typing import Dict, Tuple, Callable, List
+from yapic import json
 
 from cryptofeed.connection import AsyncConnection, WSAsyncConn
-from cryptofeed.defines import GATEIO_FUTURES, TRADES, BUY, SELL, TICKER, OPEN_INTEREST
+from cryptofeed.defines import GATEIO_FUTURES, TRADES, BUY, SELL, TICKER, OPEN_INTEREST, LIQUIDATIONS
 from cryptofeed.exchanges import Gateio
 
 
@@ -14,6 +17,7 @@ LOG = logging.getLogger('feedhandler')
 
 class GateioFutures(Gateio):
     id = GATEIO_FUTURES
+    api = "https://api.gateio.ws/api/v4/"
     symbol_endpoint = ["https://api.gateio.ws/api/v4/futures/btc/contracts", "https://api.gateio.ws/api/v4/futures/usdt/contracts"]
 
     @classmethod
@@ -109,3 +113,67 @@ class GateioFutures(Gateio):
                                 timestamp=float(trade['create_time_ms']) / 1000,
                                 receipt_timestamp=timestamp,
                                 order_id=trade['id'])
+
+    async def _liquidations(self, pairs: list):
+        last_update = defaultdict(dict)
+        """
+        [
+            {
+                "time": 1548654951,
+                "contract": "BTC_USDT",
+                "size": 600,
+                "leverage": "25",
+                "margin": "0.006705256878",
+                "entry_price": "3536.123",
+                "liq_price": "3421.54",
+                "mark_price": "3420.27",
+                "order_id": 317393847,
+                "order_price": "3405",
+                "fill_price": "3424",
+                "left": 0
+            }
+        ]
+        """
+
+        while True:
+            for pair in pairs:
+                if pair[-4:] == 'USDT':
+                    settle = 'usdt'
+                else:
+                    settle = 'btc'
+                end_point = f"{self.api}futures/{settle}/liq_orders?contract={pair}&limit=100"
+                data = await self.http_conn.read(end_point)
+                data = json.loads(data, parse_float=Decimal)
+                timestamp = time.time()
+                if len(data) == 0 or (len(data) > 0 and last_update.get(pair) == data[0]):
+                    continue
+                
+                shortage_flag = True
+                for entry in data:
+                    if pair in last_update:
+                        if entry == last_update.get(pair):
+                            shortage_flag = False
+                            break
+                    await self.callback(LIQUIDATIONS,
+                                        feed=self.id,
+                                        symbol=pair,
+                                        side=BUY if entry['size'] < 0 else SELL,
+                                        leaves_qty=Decimal(abs(entry["size"])),
+                                        price=Decimal(entry["fill_price"]),
+                                        order_id=None,
+                                        timestamp=entry["time"],
+                                        receipt_timestamp=timestamp)
+                if pair in last_update and shortage_flag:
+                    LOG.warning("%s: Possible %s data shortage", self.id, LIQUIDATIONS)
+                last_update[pair] = data[0]
+                await asyncio.sleep(0.1)
+            
+            time_to_sleep = round(60 - time.time() % 60, 6)  # call every minute
+            await asyncio.sleep(time_to_sleep)
+
+    async def subscribe(self, conn: AsyncConnection, quote: str = None):
+        if LIQUIDATIONS in self.subscription:
+            loop = asyncio.get_event_loop()
+            loop.create_task(self._liquidations(self.subscription[LIQUIDATIONS]))
+
+        await super().subscribe(conn, quote=quote)
