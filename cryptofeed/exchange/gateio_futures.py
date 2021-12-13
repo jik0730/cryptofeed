@@ -34,6 +34,7 @@ class GateioFutures(Gateio):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.address = {'USD': 'wss://fx-ws.gateio.ws/v4/ws/btc', 'USDT': 'wss://fx-ws.gateio.ws/v4/ws/usdt'}
+        self.api_max_try = 10
 
     def connect(self) -> List[Tuple[AsyncConnection, Callable[[None], None], Callable[[str, float], None]]]:
         ret = []
@@ -142,18 +143,37 @@ class GateioFutures(Gateio):
                 else:
                     settle = 'btc'
                 end_point = f"{self.api}futures/{settle}/liq_orders?contract={pair}&limit=100"
-                data = await self.http_conn.read(end_point)
-                data = json.loads(data, parse_float=Decimal)
-                timestamp = time.time()
-                if len(data) == 0 or (len(data) > 0 and last_update.get(pair) == data[0]):
-                    continue
-                
+
                 shortage_flag = True
-                for entry in data:
-                    if pair in last_update:
-                        if entry == last_update.get(pair):
+                entries = []
+                for retry in range(self.api_max_try):
+                    _end_point = end_point if len(entries) == 0 else end_point + '&to=' + str(data[-1]['time'])
+                    data = await self.http_conn.read(_end_point)
+                    data = json.loads(data, parse_float=Decimal)
+                    timestamp = time.time()
+                    if len(data) == 0:
+                        break
+                    
+                    for entry in data:
+                        if pair in last_update:
+                            if entry['time'] <= last_update.get(pair)['time']:
+                                shortage_flag = False
+                                break
+                        else:
                             shortage_flag = False
-                            break
+                        entries.append(entry)
+
+                    if retry == 0:  # store latest data
+                        last_update[pair] = data[0]
+                    await asyncio.sleep(0.1)
+
+                    if not shortage_flag:  # break if no new data
+                        break
+
+                    if shortage_flag and retry == self.api_max_try - 1:  # notify if number of retries is not enough for data shortage
+                        LOG.warning("%s: Possible %s data shortage", self.id, LIQUIDATIONS)
+                    
+                for entry in entries[::-1]:  # insert oldest entry first
                     await self.callback(LIQUIDATIONS,
                                         feed=self.id,
                                         symbol=self.exchange_symbol_to_std_symbol(pair),
@@ -163,17 +183,20 @@ class GateioFutures(Gateio):
                                         order_id=None,
                                         timestamp=entry["time"],
                                         receipt_timestamp=timestamp)
-                if pair in last_update and shortage_flag:
-                    LOG.warning("%s: Possible %s data shortage", self.id, LIQUIDATIONS)
-                last_update[pair] = data[0]
                 await asyncio.sleep(0.1)
-            
+
             time_to_sleep = round(60 - time.time() % 60, 6)  # call every minute
             await asyncio.sleep(time_to_sleep)
 
     async def subscribe(self, conn: AsyncConnection, quote: str = None):
         if LIQUIDATIONS in self.subscription:
             loop = asyncio.get_event_loop()
-            loop.create_task(self._liquidations(self.subscription[LIQUIDATIONS]))
+            pairs = []
+            for pair in self.subscription[LIQUIDATIONS]:
+                if quote == 'USDT' and pair[-4:] == 'USDT':
+                    pairs.append(pair)
+                elif quote == 'USD' and pair[-3:] == 'USD':
+                    pairs.append(pair)
+            loop.create_task(self._liquidations(pairs))
 
         await super().subscribe(conn, quote=quote)
