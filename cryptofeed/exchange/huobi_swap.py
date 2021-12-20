@@ -51,6 +51,7 @@ class HuobiSwap(HuobiDM):
         self.funding_updates = {}
         self.oi_updates = {}
         self.api_max_try = 10
+        self.rest_running = False
 
     async def _funding(self, pairs):
         async with aiohttp.ClientSession() as session:
@@ -137,60 +138,63 @@ class HuobiSwap(HuobiDM):
 
         while True:
             for pair in pairs:
-                if pair[-3:] == 'USD':
-                    end_point = self.liq_endpoint['USD'] + pair
-                else:
-                    end_point = self.liq_endpoint['USDT'] + pair
-                end_point += '&trade_type=0&create_date=7&page_size=50'
-
-                shortage_flag = True
-                page_index = 1
-                entries = []
-                for retry in range(self.api_max_try):
-                    _end_point = end_point if len(entries) == 0 else end_point + '&page_index=' + str(page_index)
-                    data = await self.http_conn.read(_end_point)
-                    data = json.loads(data, parse_float=Decimal)
-                    timestamp = time.time()
-                    
-                    if data['status'] == 'ok' and 'data' in data:
-                        received = time.time()
-                        if len(data['data']['orders']) == 0:
-                            break
-                    
-                        for entry in data['data']['orders']:
-                            if pair in last_update:
-                                if entry['created_at'] <= last_update.get(pair)['created_at']:
-                                    shortage_flag = False
-                                    break
-                            else:
-                                shortage_flag = False
-                            entries.append(entry)
-                        page_index += 1
-
-                        if retry == 0:  # store latest data
-                            last_update[pair] = data['data']['orders'][0]
-                        await asyncio.sleep(0.1)
-
-                        if not shortage_flag:  # break if no new data
-                            break
-
-                        if shortage_flag and retry == self.api_max_try - 1:  # notify if number of retries is not enough for data shortage
-                            LOG.warning("%s: Possible %s data shortage", self.id, LIQUIDATIONS)
+                try:
+                    if pair[-3:] == 'USD':
+                        end_point = self.liq_endpoint['USD'] + pair
                     else:
-                        LOG.warning("%s: Possible %s data error at %s", self.id, LIQUIDATIONS, _end_point)
-                        break
+                        end_point = self.liq_endpoint['USDT'] + pair
+                    end_point += '&trade_type=0&create_date=7&page_size=50'
+
+                    shortage_flag = True
+                    page_index = 1
+                    entries = []
+                    for retry in range(self.api_max_try):
+                        _end_point = end_point if len(entries) == 0 else end_point + '&page_index=' + str(page_index)
+                        data = await self.http_conn.read(_end_point)
+                        data = json.loads(data, parse_float=Decimal)
+                        timestamp = time.time()
                         
-                for entry in entries[::-1]:  # insert oldest entry first
-                    await self.callback(LIQUIDATIONS,
-                                        feed=self.id,
-                                        symbol=pair,
-                                        side=BUY if entry['direction'] == 'buy' else SELL,
-                                        leaves_qty=Decimal(entry["amount"]),
-                                        price=Decimal(entry["price"]),
-                                        order_id=None,
-                                        timestamp=timestamp_normalize(self.id, float(entry["created_at"])),
-                                        receipt_timestamp=received)
-                await asyncio.sleep(0.1)
+                        if data['status'] == 'ok' and 'data' in data:
+                            received = time.time()
+                            if len(data['data']['orders']) == 0:
+                                break
+                        
+                            for entry in data['data']['orders']:
+                                if pair in last_update:
+                                    if entry['created_at'] <= last_update.get(pair)['created_at']:
+                                        shortage_flag = False
+                                        break
+                                else:
+                                    shortage_flag = False
+                                entries.append(entry)
+                            page_index += 1
+
+                            if retry == 0:  # store latest data
+                                last_update[pair] = data['data']['orders'][0]
+                            await asyncio.sleep(0.1)
+
+                            if not shortage_flag:  # break if no new data
+                                break
+
+                            if shortage_flag and retry == self.api_max_try - 1:  # notify if number of retries is not enough for data shortage
+                                LOG.warning("%s: Possible %s data shortage", self.id, LIQUIDATIONS)
+                        else:
+                            LOG.warning("%s: Possible %s data error at %s", self.id, LIQUIDATIONS, _end_point)
+                            break
+                            
+                    for entry in entries[::-1]:  # insert oldest entry first
+                        await self.callback(LIQUIDATIONS,
+                                            feed=self.id,
+                                            symbol=pair,
+                                            side=BUY if entry['direction'] == 'buy' else SELL,
+                                            leaves_qty=Decimal(entry["amount"]),
+                                            price=Decimal(entry["price"]),
+                                            order_id=None,
+                                            timestamp=timestamp_normalize(self.id, float(entry["created_at"])),
+                                            receipt_timestamp=received)
+                    await asyncio.sleep(0.1)
+                except Exception as e:
+                    LOG.warning("%s: Failed to get REST liquidations with possible data shortage: %s", self.id, e)
 
             time_to_sleep = round(60 - time.time() % 60, 6)  # call every minute
             await asyncio.sleep(time_to_sleep)
@@ -216,10 +220,11 @@ class HuobiSwap(HuobiDM):
             loop = asyncio.get_event_loop()
             pairs = self.filter_pairs(quote, OPEN_INTEREST)
             loop.create_task(self._open_interest(pairs))
-        if LIQUIDATIONS in self.subscription:
+        if LIQUIDATIONS in self.subscription and not self.rest_running:
             loop = asyncio.get_event_loop()
             pairs = self.filter_pairs(quote, LIQUIDATIONS)
             loop.create_task(self._liquidations(pairs))
+            self.rest_running = True
 
         await super().subscribe(conn, quote=quote)
 

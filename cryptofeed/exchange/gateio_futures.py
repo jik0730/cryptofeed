@@ -35,6 +35,7 @@ class GateioFutures(Gateio):
         super().__init__(**kwargs)
         self.address = {'USD': 'wss://fx-ws.gateio.ws/v4/ws/btc', 'USDT': 'wss://fx-ws.gateio.ws/v4/ws/usdt'}
         self.api_max_try = 10
+        self.rest_running = False
 
     def connect(self) -> List[Tuple[AsyncConnection, Callable[[None], None], Callable[[str, float], None]]]:
         ret = []
@@ -138,58 +139,61 @@ class GateioFutures(Gateio):
 
         while True:
             for pair in pairs:
-                if pair[-4:] == 'USDT':
-                    settle = 'usdt'
-                else:
-                    settle = 'btc'
-                end_point = f"{self.api}futures/{settle}/liq_orders?contract={pair}&limit=100"
+                try:
+                    if pair[-4:] == 'USDT':
+                        settle = 'usdt'
+                    else:
+                        settle = 'btc'
+                    end_point = f"{self.api}futures/{settle}/liq_orders?contract={pair}&limit=100"
 
-                shortage_flag = True
-                entries = []
-                for retry in range(self.api_max_try):
-                    _end_point = end_point if len(entries) == 0 else end_point + '&to=' + str(data[-1]['time'])
-                    data = await self.http_conn.read(_end_point)
-                    data = json.loads(data, parse_float=Decimal)
-                    timestamp = time.time()
-                    if len(data) == 0:
-                        break
-                    
-                    for entry in data:
-                        if pair in last_update:
-                            if entry['time'] <= last_update.get(pair)['time']:
+                    shortage_flag = True
+                    entries = []
+                    for retry in range(self.api_max_try):
+                        _end_point = end_point if len(entries) == 0 else end_point + '&to=' + str(data[-1]['time'])
+                        data = await self.http_conn.read(_end_point)
+                        data = json.loads(data, parse_float=Decimal)
+                        timestamp = time.time()
+                        if len(data) == 0:
+                            break
+                        
+                        for entry in data:
+                            if pair in last_update:
+                                if entry['time'] <= last_update.get(pair)['time']:
+                                    shortage_flag = False
+                                    break
+                            else:
                                 shortage_flag = False
-                                break
-                        else:
-                            shortage_flag = False
-                        entries.append(entry)
+                            entries.append(entry)
 
-                    if retry == 0:  # store latest data
-                        last_update[pair] = data[0]
+                        if retry == 0:  # store latest data
+                            last_update[pair] = data[0]
+                        await asyncio.sleep(0.1)
+
+                        if not shortage_flag:  # break if no new data
+                            break
+
+                        if shortage_flag and retry == self.api_max_try - 1:  # notify if number of retries is not enough for data shortage
+                            LOG.warning("%s: Possible %s data shortage", self.id, LIQUIDATIONS)
+                        
+                    for entry in entries[::-1]:  # insert oldest entry first
+                        await self.callback(LIQUIDATIONS,
+                                            feed=self.id,
+                                            symbol=self.exchange_symbol_to_std_symbol(pair),
+                                            side=BUY if entry['size'] < 0 else SELL,
+                                            leaves_qty=Decimal(abs(entry["size"])),
+                                            price=Decimal(entry["fill_price"]),
+                                            order_id=None,
+                                            timestamp=entry["time"],
+                                            receipt_timestamp=timestamp)
                     await asyncio.sleep(0.1)
-
-                    if not shortage_flag:  # break if no new data
-                        break
-
-                    if shortage_flag and retry == self.api_max_try - 1:  # notify if number of retries is not enough for data shortage
-                        LOG.warning("%s: Possible %s data shortage", self.id, LIQUIDATIONS)
-                    
-                for entry in entries[::-1]:  # insert oldest entry first
-                    await self.callback(LIQUIDATIONS,
-                                        feed=self.id,
-                                        symbol=self.exchange_symbol_to_std_symbol(pair),
-                                        side=BUY if entry['size'] < 0 else SELL,
-                                        leaves_qty=Decimal(abs(entry["size"])),
-                                        price=Decimal(entry["fill_price"]),
-                                        order_id=None,
-                                        timestamp=entry["time"],
-                                        receipt_timestamp=timestamp)
-                await asyncio.sleep(0.1)
+                except Exception as e:
+                    LOG.warning("%s: Failed to get REST liquidations with possible data shortage: %s", self.id, e)
 
             time_to_sleep = round(60 - time.time() % 60, 6)  # call every minute
             await asyncio.sleep(time_to_sleep)
 
     async def subscribe(self, conn: AsyncConnection, quote: str = None):
-        if LIQUIDATIONS in self.subscription:
+        if LIQUIDATIONS in self.subscription and not self.rest_running:
             loop = asyncio.get_event_loop()
             pairs = []
             for pair in self.subscription[LIQUIDATIONS]:
@@ -198,5 +202,6 @@ class GateioFutures(Gateio):
                 elif quote == 'USD' and pair[-3:] == 'USD':
                     pairs.append(pair)
             loop.create_task(self._liquidations(pairs))
+            self.rest_running = True
 
         await super().subscribe(conn, quote=quote)
