@@ -26,6 +26,8 @@ class OKEx(Feed):
     id = OKEX
     api = 'https://www.okex.com/api/'
     symbol_endpoint = ['https://www.okex.com/api/v5/public/instruments?instType=SPOT', 'https://www.okex.com/api/v5/public/instruments?instType=SWAP', 'https://www.okex.com/api/v5/public/instruments?instType=FUTURES']
+    api_max_try = 10
+    liq_rate_limit = 1  # 2 req per 2 seconds
 
     @classmethod
     def _parse_symbol_data(cls, data: list, symbol_separator: str) -> Tuple[Dict, Dict]:
@@ -40,8 +42,6 @@ class OKEx(Feed):
 
     def __init__(self, **kwargs):
         super().__init__('wss://ws.okex.com:8443/ws/v5/public', **kwargs)
-        self.api_max_try = 10
-        self.liq_rate_limit = 1  # 2 req per 2 seconds
         self.rest_running = False
 
     async def _trade(self, msg: dict, timestamp: float):

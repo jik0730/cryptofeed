@@ -19,6 +19,7 @@ class GateioFutures(Gateio):
     id = GATEIO_FUTURES
     api = "https://api.gateio.ws/api/v4/"
     symbol_endpoint = ["https://api.gateio.ws/api/v4/futures/btc/contracts", "https://api.gateio.ws/api/v4/futures/usdt/contracts"]
+    api_max_try = 10
 
     @classmethod
     def _parse_symbol_data(cls, data_list: list, symbol_separator: str) -> Tuple[Dict, Dict]:
@@ -34,7 +35,6 @@ class GateioFutures(Gateio):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.address = {'USD': 'wss://fx-ws.gateio.ws/v4/ws/btc', 'USDT': 'wss://fx-ws.gateio.ws/v4/ws/usdt'}
-        self.api_max_try = 10
         self.rest_running = False
 
     def connect(self) -> List[Tuple[AsyncConnection, Callable[[None], None], Callable[[str, float], None]]]:

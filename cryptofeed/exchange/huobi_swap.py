@@ -34,6 +34,7 @@ class HuobiSwap(HuobiDM):
         'USD': 'https://api.hbdm.com/swap-api/v1/swap_liquidation_orders?contract_code=',
         'USDT': 'https://api.hbdm.com/linear-swap-api/v1/swap_liquidation_orders?contract_code=',
     }
+    api_max_try = 10
 
     @classmethod
     def _parse_symbol_data(cls, data: list, symbol_separator: str) -> Tuple[Dict, Dict]:
@@ -50,7 +51,6 @@ class HuobiSwap(HuobiDM):
         Feed.__init__(self, {'USD': 'wss://api.hbdm.com/swap-ws', 'USDT': 'wss://api.hbdm.com/linear-swap-ws'}, **kwargs)
         self.funding_updates = {}
         self.oi_updates = {}
-        self.api_max_try = 10
         self.rest_running = {'USD': False, 'USDT': False}
 
     async def _funding(self, pairs):
