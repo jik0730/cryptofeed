@@ -139,7 +139,7 @@ class HuobiSwap(HuobiDM):
         while True:
             for pair in pairs:
                 try:
-                    if pair[-3:] == 'USD':
+                    if pair.endswith('USD'):
                         end_point = self.liq_endpoint['USD'] + pair
                     else:
                         end_point = self.liq_endpoint['USDT'] + pair
@@ -231,8 +231,8 @@ class HuobiSwap(HuobiDM):
     def filter_pairs(self, quote: str, channel: str):
         pairs = []
         for pair in self.subscription[channel]:
-            if quote == 'USDT' and pair[-4:] == 'USDT':
+            if quote == 'USDT' and pair.endswith('USDT'):
                 pairs.append(pair)
-            elif quote == 'USD' and pair[-3:] == 'USD':
+            elif quote == 'USD' and pair.endswith('USD'):
                 pairs.append(pair)
         return pairs

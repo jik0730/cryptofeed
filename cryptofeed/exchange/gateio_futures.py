@@ -140,7 +140,7 @@ class GateioFutures(Gateio):
         while True:
             for pair in pairs:
                 try:
-                    if pair[-4:] == 'USDT':
+                    if pair.endswith('USDT'):
                         settle = 'usdt'
                     else:
                         settle = 'btc'
@@ -197,9 +197,9 @@ class GateioFutures(Gateio):
             loop = asyncio.get_event_loop()
             pairs = []
             for pair in self.subscription[LIQUIDATIONS]:
-                if quote == 'USDT' and pair[-4:] == 'USDT':
+                if quote == 'USDT' and pair.endswith('USDT'):
                     pairs.append(pair)
-                elif quote == 'USD' and pair[-3:] == 'USD':
+                elif quote == 'USD' and pair.endswith('USD'):
                     pairs.append(pair)
             loop.create_task(self._liquidations(pairs))
             self.rest_running = True
