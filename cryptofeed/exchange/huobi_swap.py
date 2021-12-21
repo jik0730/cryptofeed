@@ -51,7 +51,7 @@ class HuobiSwap(HuobiDM):
         self.funding_updates = {}
         self.oi_updates = {}
         self.api_max_try = 10
-        self.rest_running = False
+        self.rest_running = {'USD': False, 'USDT': False}
 
     async def _funding(self, pairs):
         async with aiohttp.ClientSession() as session:
@@ -220,11 +220,11 @@ class HuobiSwap(HuobiDM):
             loop = asyncio.get_event_loop()
             pairs = self.filter_pairs(quote, OPEN_INTEREST)
             loop.create_task(self._open_interest(pairs))
-        if LIQUIDATIONS in self.subscription and not self.rest_running:
+        if LIQUIDATIONS in self.subscription and not self.rest_running[quote]:
             loop = asyncio.get_event_loop()
             pairs = self.filter_pairs(quote, LIQUIDATIONS)
             loop.create_task(self._liquidations(pairs))
-            self.rest_running = True
+            self.rest_running[quote] = True
 
         await super().subscribe(conn, quote=quote)
 
