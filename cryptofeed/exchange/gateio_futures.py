@@ -35,7 +35,7 @@ class GateioFutures(Gateio):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.address = {'USD': 'wss://fx-ws.gateio.ws/v4/ws/btc', 'USDT': 'wss://fx-ws.gateio.ws/v4/ws/usdt'}
-        self.rest_running = False
+        self.rest_running = {'USD': False, 'USDT': False}
 
     def connect(self) -> List[Tuple[AsyncConnection, Callable[[None], None], Callable[[str, float], None]]]:
         ret = []
@@ -193,7 +193,7 @@ class GateioFutures(Gateio):
             await asyncio.sleep(time_to_sleep)
 
     async def subscribe(self, conn: AsyncConnection, quote: str = None):
-        if LIQUIDATIONS in self.subscription and not self.rest_running:
+        if LIQUIDATIONS in self.subscription and not self.rest_running[quote]:
             loop = asyncio.get_event_loop()
             pairs = []
             for pair in self.subscription[LIQUIDATIONS]:
@@ -202,6 +202,6 @@ class GateioFutures(Gateio):
                 elif quote == 'USD' and pair.endswith('USD'):
                     pairs.append(pair)
             loop.create_task(self._liquidations(pairs))
-            self.rest_running = True
+            self.rest_running[quote] = True
 
         await super().subscribe(conn, quote=quote)
