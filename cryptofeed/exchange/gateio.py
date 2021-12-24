@@ -15,7 +15,7 @@ from sortedcontainers import SortedDict as sd
 from yapic import json
 
 from cryptofeed.connection import AsyncConnection
-from cryptofeed.defines import BID, ASK, CANDLES, GATEIO, L2_BOOK, TICKER, TRADES, BUY, SELL
+from cryptofeed.defines import BID, ASK, CANDLES, GATEIO, L2_BOOK, TICKER, TRADES, BUY, SELL, LIQUIDATIONS
 from cryptofeed.feed import Feed
 
 
@@ -242,6 +242,8 @@ class Gateio(Feed):
     async def subscribe(self, conn: AsyncConnection, quote: str = None):
         self._reset()
         for chan in self.subscription:
+            if chan in [LIQUIDATIONS]:
+                continue
             symbols = self.subscription[chan]
             nchan = normalize_channel(self.id, chan)
             if nchan in {L2_BOOK, CANDLES}:
