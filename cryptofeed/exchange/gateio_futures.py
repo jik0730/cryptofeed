@@ -107,12 +107,13 @@ class GateioFutures(Gateio):
         """
         data = msg['result']
         for trade in data:
+            timestamp = trade["create_time_ms"] if "create_time_ms" in trade else trade["time_ms"]
             await self.callback(TRADES, feed=self.id,
                                 symbol=self.exchange_symbol_to_std_symbol(trade['contract']),
                                 side=SELL if trade['size'] < 0 else BUY,
                                 amount=Decimal(abs(trade['size'])),
                                 price=Decimal(trade['price']),
-                                timestamp=float(trade['create_time_ms']) / 1000,
+                                timestamp=float(timestamp) / 1000,
                                 receipt_timestamp=timestamp,
                                 order_id=trade['id'])
 
