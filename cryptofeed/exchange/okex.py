@@ -24,8 +24,8 @@ LOG = logging.getLogger("feedhandler")
 
 class OKEx(Feed):
     id = OKEX
-    api = 'https://www.okex.com/api/'
-    symbol_endpoint = ['https://www.okex.com/api/v5/public/instruments?instType=SPOT', 'https://www.okex.com/api/v5/public/instruments?instType=SWAP', 'https://www.okex.com/api/v5/public/instruments?instType=FUTURES']
+    api = 'htttps://www.okx.com/api/'
+    symbol_endpoint = ['https://www.okx.com/api/v5/public/instruments?instType=SPOT', 'https://www.okx.com/api/v5/public/instruments?instType=SWAP', 'https://www.okx.com/api/v5/public/instruments?instType=FUTURES']
     api_max_try = 10
     liq_rate_limit = 1  # 2 req per 2 seconds
 
@@ -41,7 +41,7 @@ class OKEx(Feed):
         return ret, info
 
     def __init__(self, **kwargs):
-        super().__init__('wss://ws.okex.com:8443/ws/v5/public', **kwargs)
+        super().__init__('wss://ws.okx.com:8443/ws/v5/public', **kwargs)
         self.rest_running = False
 
     async def _trade(self, msg: dict, timestamp: float):
