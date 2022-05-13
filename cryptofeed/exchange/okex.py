@@ -24,7 +24,7 @@ LOG = logging.getLogger("feedhandler")
 
 class OKEx(Feed):
     id = OKEX
-    api = 'htttps://www.okx.com/api/'
+    api = 'https://www.okx.com/api/'
     symbol_endpoint = ['https://www.okx.com/api/v5/public/instruments?instType=SPOT', 'https://www.okx.com/api/v5/public/instruments?instType=SWAP', 'https://www.okx.com/api/v5/public/instruments?instType=FUTURES']
     api_max_try = 10
     liq_rate_limit = 1  # 2 req per 2 seconds
