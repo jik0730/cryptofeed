@@ -37,7 +37,7 @@ Handles multiple cryptocurrency exchange data feeds and returns normalized and s
 * [Kraken Futures](https://futures.kraken.com/)
 * [KuCoin](https://www.kucoin.com/)
 * [OKCoin](http://okcoin.com/)
-* [OKEx](https://www.okex.com/)
+* [OKEx](https://www.okx.com/)
 * [Poloniex](https://www.poloniex.com/)
 * [ProBit](https://www.probit.com/)
 * [Upbit](https://sg.upbit.com/home)

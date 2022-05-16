@@ -11,18 +11,17 @@ from dateutil.parser import parse
 
 
 def get_server_time():
-    url = "https://www.okex.com/api/general/v3/time"
+    url = "https://www.okx.com/api/v5/public/time"
     response = requests.get(url)
     if response.status_code == 200:
-        return response.json()['iso']
+        return response.json()['data'][0]['ts']
     else:
         return ""
 
 
 def server_timestamp():
     server_time = get_server_time()
-    parsed_t = parse(server_time)
-    timestamp = parsed_t.timestamp()
+    timestamp = int(int(server_time)/1000)
     return timestamp
 
 
