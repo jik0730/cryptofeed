@@ -5,6 +5,7 @@ Please see the LICENSE file for the terms and conditions
 associated with this software.
 '''
 import asyncio
+from aiolimiter import AsyncLimiter
 from collections import defaultdict
 from decimal import Decimal
 import logging
@@ -26,8 +27,7 @@ class OKEx(Feed):
     id = OKEX
     api = 'https://www.okx.com/api/'
     symbol_endpoint = ['https://www.okx.com/api/v5/public/instruments?instType=SPOT', 'https://www.okx.com/api/v5/public/instruments?instType=SWAP', 'https://www.okx.com/api/v5/public/instruments?instType=FUTURES']
-    api_max_try = 10
-    liq_rate_limit = 1  # 2 req per 2 seconds
+    api_max_try = 3
 
     @classmethod
     def _parse_symbol_data(cls, data: list, symbol_separator: str) -> Tuple[Dict, Dict]:
@@ -77,7 +77,7 @@ class OKEx(Feed):
         for FUTURES liquidations, the following arguments are required: uly, state, alias
         FUTURES, MARGIN and OPTION liquidation request not currently supported by the below
         """
-
+        rate_limit = AsyncLimiter(2, 3)  # 2 req per 2 seconds
         while True:
             for pair in pairs:
                 try:
@@ -92,8 +92,9 @@ class OKEx(Feed):
                     entries = []
                     for retry in range(self.api_max_try):
                         _end_point = end_point if len(entries) == 0 else end_point + '&after=' + str(data['data'][0]['details'][-1]['ts'])
-                        data = await self.http_conn.read(_end_point)
-                        data = json.loads(data, parse_float=Decimal)
+                        async with rate_limit:
+                            data = await self.http_conn.read(_end_point)
+                            data = json.loads(data, parse_float=Decimal)
                         timestamp = time.time()
 
                         if len(data['data'][0]['details']) == 0:
