@@ -26,7 +26,7 @@ class OKEx(Feed):
     id = OKEX
     api = 'https://www.okx.com/api/'
     symbol_endpoint = ['https://www.okx.com/api/v5/public/instruments?instType=SPOT', 'https://www.okx.com/api/v5/public/instruments?instType=SWAP', 'https://www.okx.com/api/v5/public/instruments?instType=FUTURES']
-    api_max_try = 10
+    api_max_try = 3
     liq_rate_limit = 1  # 2 req per 2 seconds
 
     @classmethod
@@ -110,7 +110,7 @@ class OKEx(Feed):
 
                         if retry == 0:  # store latest data
                             last_update[pair] = data['data'][0]['details'][0]
-                        await asyncio.sleep(0.1)
+                        await asyncio.sleep(1 / liq_rate_limit)
 
                         if not shortage_flag:  # break if no new data
                             break
@@ -128,7 +128,7 @@ class OKEx(Feed):
                                             order_id=None,
                                             timestamp=timestamp_normalize(self.id, float(entry["ts"])),
                                             receipt_timestamp=timestamp)
-                    await asyncio.sleep(1.5)  # 2 req per 2 seconds
+                    await asyncio.sleep(1 / liq_rate_limit)
                 except Exception as e:
                     LOG.warning("%s: Failed to get REST liquidations with possible data shortage: %s", self.id, e)
             
