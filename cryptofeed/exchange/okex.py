@@ -128,7 +128,7 @@ class OKEx(Feed):
                                             order_id=None,
                                             timestamp=timestamp_normalize(self.id, float(entry["ts"])),
                                             receipt_timestamp=timestamp)
-                    await asyncio.sleep(0.1)
+                    await asyncio.sleep(1.5)  # 2 req per 2 seconds
                 except Exception as e:
                     LOG.warning("%s: Failed to get REST liquidations with possible data shortage: %s", self.id, e)
             
