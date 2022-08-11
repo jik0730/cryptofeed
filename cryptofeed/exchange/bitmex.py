@@ -40,12 +40,14 @@ class Bitmex(Feed):
             components = []
             components.append(entry['rootSymbol'])
             components.append(entry['quoteCurrency'])
+            components.append(entry["settlCurrency"].upper())
 
             if entry['expiry']:
                 components.append(entry['symbol'][-3:])
 
             normalized = symbol_separator.join(components)
             normalized = normalized.replace("XBT", "BTC")
+            normalized = normalized.replace("GWEI", "ETH")
             ret[normalized] = entry['symbol']
             info['tick_size'][normalized] = entry['tickSize']
 
