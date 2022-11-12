@@ -96,7 +96,7 @@ class OKEx(Feed):
                                 rate=Decimal(funding['fundingRate']),
                                 timestamp=timestamp_normalize(self.id, int(funding['fundingTime'])),
                                 receipt_timestamp=timestamp,
-                                next_funding_time=timestamp_normalize(self.id, int(funding['fundingTime'])),
+                                next_funding_time=timestamp_normalize(self.id, int(funding['nextFundingTime'])),
                                 )
 
     async def _liquidations(self, pairs: list):
