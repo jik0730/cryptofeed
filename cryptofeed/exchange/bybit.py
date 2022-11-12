@@ -205,8 +205,7 @@ class Bybit(Feed):
                                         symbol=self.exchange_symbol_to_std_symbol(info['symbol']),
                                         timestamp=ts,
                                         receipt_timestamp=timestamp,
-                                        rate=Decimal(info['funding_rate_e6']) / Decimal(1e6),
-                                        next_funding_time=timestamp_normalize(self.id, info['next_funding_time']))
+                                        rate=Decimal(info['funding_rate_e6']) / Decimal(1e6))
 
             if 'index_price_e4' in info:
                 await self.callback(FUTURES_INDEX, feed=self.id,
