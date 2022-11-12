@@ -126,7 +126,7 @@ class OKEx(Feed):
                             data = json.loads(data, parse_float=Decimal)
                         timestamp = time.time()
 
-                        if len(data['data'][0]['details']) == 0:
+                        if len(data['data']) == 0 or len(data['data'][0]['details']) == 0:
                             break
                         
                         for entry in data['data'][0]['details']:
