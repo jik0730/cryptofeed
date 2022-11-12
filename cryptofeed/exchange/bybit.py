@@ -14,7 +14,7 @@ from sortedcontainers import SortedDict as sd
 from yapic import json
 
 from cryptofeed.connection import AsyncConnection, WSAsyncConn
-from cryptofeed.defines import BID, ASK, BUY, BYBIT, L2_BOOK, SELL, TRADES, OPEN_INTEREST, FUTURES_INDEX, LIQUIDATIONS
+from cryptofeed.defines import BID, ASK, BUY, BYBIT, L2_BOOK, SELL, TRADES, OPEN_INTEREST, FUTURES_INDEX, LIQUIDATIONS, FUNDING
 from cryptofeed.feed import Feed
 from cryptofeed.standards import timestamp_normalize
 
@@ -198,6 +198,15 @@ class Bybit(Feed):
                                     open_interest=Decimal(oi_usd),
                                     timestamp=ts,
                                     receipt_timestamp=timestamp)
+
+            if 'funding_rate_e6' in info:
+                if info['funding_rate_e6'] is not None and info['funding_rate_e6'] != '':
+                    await self.callback(FUNDING, feed=self.id,
+                                        symbol=self.exchange_symbol_to_std_symbol(info['symbol']),
+                                        timestamp=ts,
+                                        receipt_timestamp=timestamp,
+                                        rate=Decimal(info['funding_rate_e6']) / Decimal(1e6),
+                                        next_funding_time=timestamp_normalize(self.id, info['next_funding_time']))
 
             if 'index_price_e4' in info:
                 await self.callback(FUTURES_INDEX, feed=self.id,

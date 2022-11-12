@@ -15,7 +15,7 @@ from typing import Dict, Tuple
 from yapic import json
 
 from cryptofeed.connection import AsyncConnection
-from cryptofeed.defines import OKEX, BUY, SELL, TRADES, OPEN_INTEREST, LIQUIDATIONS, FILLED, UNFILLED
+from cryptofeed.defines import OKEX, BUY, SELL, TRADES, OPEN_INTEREST, LIQUIDATIONS, FILLED, UNFILLED, FUNDING
 from cryptofeed.feed import Feed
 from cryptofeed.standards import timestamp_normalize
 
@@ -68,6 +68,35 @@ class OKEx(Feed):
                                 open_interest=Decimal(oi['oi']),
                                 timestamp=timestamp_normalize(self.id, int(oi['ts'])),
                                 receipt_timestamp=timestamp
+                                )
+
+    async def _funding(self, msg: dict, timestamp: float):
+        """
+        {
+            "arg": {
+                "channel": "funding-rate",
+                "instId": "BTC-USD-SWAP"
+            },
+            "data": [
+                {
+                    "fundingRate": "0.0001515",
+                    "fundingTime": "1622822400000",
+                    "instId": "BTC-USD-SWAP",
+                    "instType": "SWAP",
+                    "nextFundingRate": "0.00029",
+                    "nextFundingTime": "1622851200000"
+                }
+            ]
+        }
+        """
+        for funding in msg['data']:
+            await self.callback(FUNDING,
+                                feed=self.id,
+                                symbol=self.exchange_symbol_to_std_symbol(funding['instId']),
+                                rate=Decimal(funding['fundingRate']),
+                                timestamp=timestamp_normalize(self.id, int(funding['fundingTime'])),
+                                receipt_timestamp=timestamp,
+                                next_funding_time=timestamp_normalize(self.id, int(funding['fundingTime'])),
                                 )
 
     async def _liquidations(self, pairs: list):
@@ -151,6 +180,8 @@ class OKEx(Feed):
                 await self._trade(msg, timestamp)
             elif msg['arg']['channel'] == 'open-interest':
                 await self._open_interest(msg, timestamp)
+            elif msg['arg']['channel'] == 'funding-rate':
+                await self._funding(msg, timestamp)
             else:
                 LOG.warning("%s: Unhandled message %s", self.id, msg)
         else:

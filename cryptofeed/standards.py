@@ -181,9 +181,10 @@ _feed_to_exchange_map = {
         BINANCE_DELIVERY: 'markPrice',
         KRAKEN_FUTURES: 'ticker',
         DERIBIT: 'ticker',
-        # OKEX: '{}/funding_rate',
+        OKEX: 'funding-rate',
         FTX: 'funding',
-        HUOBI_SWAP: 'funding'
+        HUOBI_SWAP: 'funding',
+        BYBIT: 'instrument_info.100ms',
     },
     OPEN_INTEREST: {
         OKEX: 'open-interest',
