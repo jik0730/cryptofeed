@@ -31,8 +31,8 @@ class HuobiSwap(HuobiDM):
         'USDT': 'https://api.hbdm.com/linear-swap-api/v1/swap_open_interest?contract_code=',
     }
     liq_endpoint = {
-        'USD': 'https://api.hbdm.com/swap-api/v1/swap_liquidation_orders?contract_code=',
-        'USDT': 'https://api.hbdm.com/linear-swap-api/v1/swap_liquidation_orders?contract_code=',
+        'USD': 'https://api.hbdm.com/swap-api/v3/swap_liquidation_orders?direct=prev&contract=',
+        'USDT': 'https://api.hbdm.com/linear-swap-api/v3/swap_liquidation_orders?direct=prev&contract=',
     }
     api_max_try = 10
 
@@ -143,23 +143,22 @@ class HuobiSwap(HuobiDM):
                         end_point = self.liq_endpoint['USD'] + pair
                     else:
                         end_point = self.liq_endpoint['USDT'] + pair
-                    end_point += '&trade_type=0&create_date=7&page_size=50'
+                    end_point += '&trade_type=0'
 
                     shortage_flag = True
-                    page_index = 1
                     entries = []
                     for retry in range(self.api_max_try):
-                        _end_point = end_point if len(entries) == 0 else end_point + '&page_index=' + str(page_index)
+                        _end_point = end_point if len(entries) == 0 else end_point + '&end_time=' + str(data[-1]['created_at'] - 1)
                         data = await self.http_conn.read(_end_point)
                         data = json.loads(data, parse_float=Decimal)
                         timestamp = time.time()
                         
-                        if data['status'] == 'ok' and 'data' in data:
+                        if data['msg'] == 'ok' and 'data' in data:
                             received = time.time()
-                            if len(data['data']['orders']) == 0:
+                            if len(data['data']) == 0:
                                 break
                         
-                            for entry in data['data']['orders']:
+                            for entry in data['data']:
                                 if pair in last_update:
                                     if entry['created_at'] <= last_update.get(pair)['created_at']:
                                         shortage_flag = False
@@ -167,10 +166,9 @@ class HuobiSwap(HuobiDM):
                                 else:
                                     shortage_flag = False
                                 entries.append(entry)
-                            page_index += 1
 
                             if retry == 0:  # store latest data
-                                last_update[pair] = data['data']['orders'][0]
+                                last_update[pair] = data['data'][0]
                             await asyncio.sleep(0.1)
 
                             if not shortage_flag:  # break if no new data
