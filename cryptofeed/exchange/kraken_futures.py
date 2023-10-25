@@ -36,6 +36,7 @@ class KrakenFutures(Feed):
             'PV': 'Perpetual Vanilla Futures',
             'IN': 'Real Time Index',
             'RR': 'Reference Rate',
+            'FF': 'Fixed Maturity Linear Futures',
         }
         ret = {}
         info = defaultdict(dict)
